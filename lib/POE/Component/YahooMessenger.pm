@@ -2,7 +2,7 @@ package POE::Component::YahooMessenger;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW
 	   Filter::YahooMessengerPacket Component::YahooMessenger::Constants);
@@ -203,13 +203,22 @@ sub goes_online {
     my($kernel, $heap, $event) = @_[KERNEL, HEAP, ARG0];
     my $number = $event->number_of_online_buddies;
     $number = 1 unless defined $number;
+
+    # XXX status message is optional
+    my $status_num;
     for my $num (0..$number-1) {
 	$heap->{online}->{$event->buddy_id($num)} = 1;
+	my $status_code = $event->status_code($num);
+	my $status_message;
+	if ($status_code == 99) {
+	    $status_message = $event->status_message($status_num);
+	    $status_num++;
+	}
 	my $goes_online = POE::Component::YahooMessenger::Event->new(
 	    'goes_online', 0, {
 		buddy_id => $event->buddy_id($num),
-		status_code => $event->status_code($num),
-		status_message => $event->status_message($num),
+		status_code => $status_code,
+		status_message => $status_message,
 		busy_code => $event->busy_code($num),
 	    },
 	);
