@@ -13,7 +13,8 @@ BEGIN {
 	    while (my($key, $value) = splice(@params, 0, 2)) {
 		push @values, $value if $key eq $BodyNames->{$wantkey};
 	    }
-	    return defined $number ? $values[$number] : $values[0];
+	    return defined $number ? $values[$number]
+		: wantarray ? @values : $values[0];
 	};
     }
 

@@ -2,7 +2,7 @@ package POE::Component::YahooMessenger;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW
 	   Filter::YahooMessengerPacket Component::YahooMessenger::Constants);
@@ -17,6 +17,7 @@ sub spawn {
 	    _start     => \&_start,
 	    _stop      => \&_stop,
 	    _sock_up   => \&_sock_up,
+	    _sock_failed   => \&_sock_failed,
 	    _sock_down => \&_sock_down,
 
 	    # API
@@ -26,6 +27,8 @@ sub spawn {
 	    send_message     => \&send_message,
 	    change_my_status => \&change_my_status,
 	    buddies          => \&buddies,
+	    add_buddy        => \&add_buddy,
+	    delete_buddy     => \&delete_buddy,
 
 	    # internals
 	    login             => \&login,
@@ -37,6 +40,7 @@ sub spawn {
 	    goes_online      	=> \&goes_online,
 	    goes_offline     	=> \&goes_offline,
 	    change_status    	=> \&_handle_common,
+	    change_normal_status => \&_handle_common,
 	    receive_message  	=> \&receive_message,
 	    new_buddy_alert 	=> \&_handle_common,
 	    toggle_typing 	=> \&_handle_common,
@@ -115,6 +119,15 @@ sub _sock_up {
     $heap->{connected} = 1;
     $kernel->yield(notify => connected => ());
     $kernel->yield(login => ());
+}
+
+sub _sock_failed {
+    my($kernel, $heap) = @_[KERNEL, HEAP];
+    $kernel->yield(notify => socket_error => ());
+    for my $session (keys %{$heap->{listeners}}) {
+	$kernel->yield(_unregister => $session);
+    }
+
 }
 
 sub _sock_down {
@@ -249,6 +262,33 @@ sub change_my_status {
 sub buddies {
     my($kernel, $heap, $sender, $reply) = @_[KERNEL, HEAP, SENDER, ARG0];
     $kernel->post($sender => $reply => $heap->{buddies});
+}
+
+sub add_buddy {
+    my($kernel, $heap, $args) = @_[KERNEL, HEAP, ARG0];
+    $heap->{sock}->put(
+	POE::Component::YahooMessenger::Event->new(
+	    'add_buddy', 0, {
+		id       => $heap->{id},
+		buddy_id => $args->{buddy_id},
+		group    => $args->{group},
+		message  => $args->{message},
+	    },
+	),
+    );
+}
+
+sub delete_buddy {
+    my($kernel, $heap, $args) = @_[KERNEL, HEAP, ARG0];
+    $heap->{sock}->put(
+	POE::Component::YahooMessenger::Event->new(
+	    'delete_buddy', 0, {
+		id           => $heap->{id},
+		buddy_id     => $args->{buddy_id},
+		group        => $args->{group},
+	    },
+	),
+    );
 }
 
 1;

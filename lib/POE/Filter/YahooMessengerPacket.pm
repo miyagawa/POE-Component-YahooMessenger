@@ -13,7 +13,7 @@ sub new {
     }, $class;
 }
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 sub Dumper { require Data::Dumper; Data::Dumper::Dumper(@_) }
 
 sub get {

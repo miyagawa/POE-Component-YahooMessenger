@@ -15,7 +15,7 @@ BEGIN {
 use vars @EXPORT;
 
 $Default = {
-    hostanme      => 'scs.yahoo.com',
+    hostname      => 'scs.yahoo.com',
     port          => 5050,
 };
 
@@ -50,6 +50,8 @@ $SendEventCodes = {
     6  => 'send_message',
     77 => 'send_file',
     84 => 'challenge_response',
+    131 => 'add_buddy',
+    132 => 'delete_buddy',
 };
 
 $SendEventNames = { reverse %$SendEventCodes };
@@ -82,6 +84,8 @@ $BodyCodes = {
     54 => 'protocol',		# XXX 'MSG1.0'
     57 => 'conference_name',
     58 => 'invitation_message',
+    59 => 'cookie',
+    65 => 'group',
     87 => 'buddy_list',
     94 => 'challenge_string',
     96 => 'crypted_response',
