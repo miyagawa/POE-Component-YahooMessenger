@@ -2,7 +2,7 @@ package POE::Component::YahooMessenger;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW
 	   Filter::YahooMessengerPacket Component::YahooMessenger::Constants);
@@ -38,12 +38,13 @@ sub spawn {
 	    goes_offline     	=> \&goes_offline,
 	    change_status    	=> \&_handle_common,
 	    receive_message  	=> \&receive_message,
-	    new_friend_alert 	=> \&_handle_common,
+	    new_buddy_alert 	=> \&_handle_common,
 	    toggle_typing 	=> \&_handle_common,
 	    server_is_alive 	=> \&_handle_common,
 	    cram_auth_fail 	=> \&_handle_common,
 	    receive_buddy_list	=> \&receive_buddy_list,
 	    challenge_start 	=> \&challenge_start,
+	    receive_file        => \&_handle_common,
 	},
 	args => [ \%args ],
     );
@@ -179,7 +180,8 @@ sub receive_buddy_list {
     my $buddy_list = $event->buddy_list;
     while ($buddy_list =~ /([^:]+):([^\x0a]+)\x0a/g) {
 	my $group = $1;
-	$heap->{buddies}->{$group} = [ split /,/, $2 ];
+	my @buddies = split /,/, $2;
+	$heap->{buddies}->{$_} = $group for @buddies;
     }
     $kernel->yield(notify => $event->name, $event);
 }
@@ -218,7 +220,7 @@ sub receive_message {
 
 sub send_message {
     my($kernel, $heap, $args) = @_[KERNEL, HEAP, ARG0];
-    my $option = _is_buddy($heap, $args->{to})
+    my $option = $heap->{buddies}->{$args->{to}}
 	? $Options->{to_buddies} : $Options->{to_non_buddies};
     $heap->{sock}->put(
 	POE::Component::YahooMessenger::Event->new(
@@ -229,12 +231,6 @@ sub send_message {
 	    },
 	),
     );
-}
-
-sub _is_buddy {
-    my($heap, $buddy_id) = @_;
-    my %buddies = map $_ => 1, map @$_, values %{$heap->{buddies}};
-    return $buddies{$buddy_id};
 }
 
 sub change_my_status {
@@ -300,8 +296,8 @@ POE::Component::YahooMessenger - POE component for Yahoo! Messenger
   $kernel->post(ym => buddies => 'retrieve_buddies');
   sub retrieve_buddies {
       my $buddies = $_[ARG0];
-      for my $group (keys %$buddies) {
-	  print "$group:\n", map "  $_\n", @{$buddies->{$group}};
+      for my $buddy_id (keys %$buddies) {
+	  printf "%s (group: %s)\n", $buddy_id, $buddies->{$buddy_id};
       }
   }
 

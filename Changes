@@ -1,5 +1,13 @@
 Revision history for Perl extension POE::Component::YahooMessenger
 
+0.03  Wed Sep 18 11:57:33 JST 2002
+	- Renamed new_friend_alert to new_buddy_alert
+	- Fixed bug in _is_buddy()
+	* Added receive_file event (only works when sender is HTTP accessible)
+	- Changed buddies API
+	* Fixed typo in Constants.pm
+	  (Thanks to Warren Lindsey <wlindsey@ponvia.com>)
+
 0.02  Tue Sep 17 12:45:54 JST 2002
 	* Fixed logon goes_online events
 	- Added null message handling in receive_message
