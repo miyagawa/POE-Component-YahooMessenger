@@ -6,10 +6,10 @@ BEGIN {
 
     require Exporter;
     @ISA    = qw(Exporter);
-    @EXPORT = qw($MessageHeader $BodySeparater
+    @EXPORT = qw($Default $MessageHeader $BodySeparater $Options
 		 $ReceiveEventCodes $ReceiveEventNames
 		 $SendEventCodes $SendEventNames
-		 $BodyCodes $BodyNames $Default);
+		 $BodyCodes $BodyNames);
 }
 
 use vars @EXPORT;
@@ -17,6 +17,11 @@ use vars @EXPORT;
 $Default = {
     hostanme      => 'scs.yahoo.com',
     port          => 5050,
+};
+
+$Options = {
+    to_buddies => 1515563606,
+    to_non_buddies => 1515563605,
 };
 
 $MessageHeader = 'YMSG';

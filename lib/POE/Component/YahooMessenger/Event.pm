@@ -7,13 +7,13 @@ BEGIN {
     sub _make_body_accessor {
 	my $wantkey = shift;
 	return sub {
-	    my $self = shift;
+	    my($self, $number) = @_;
 	    my @values;
 	    my @params = $self->params;
 	    while (my($key, $value) = splice(@params, 0, 2)) {
 		push @values, $value if $key eq $BodyNames->{$wantkey};
 	    }
-	    return wantarray ? @values : $values[0];
+	    return defined $number ? $values[$number] : $values[0];
 	};
     }
 

@@ -1,4 +1,8 @@
 Revision history for Perl extension POE::Component::YahooMessenger
 
+0.02  Tue Sep 17 12:45:54 JST 2002
+	* Fixed logon goes_online events
+	- Added null message handling in receive_message
+
 0.01  Wed Sep 11 21:24:31 2002
 	- original version

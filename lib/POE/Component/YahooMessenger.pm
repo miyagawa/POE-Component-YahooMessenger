@@ -2,13 +2,12 @@ package POE::Component::YahooMessenger;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW
-	   Filter::Stream Filter::YahooMessengerPacket);
-use Socket;			# for constants
+	   Filter::YahooMessengerPacket Component::YahooMessenger::Constants);
+use Socket;
 use Net::YahooMessenger::CRAM;
-use POE::Component::YahooMessenger::Constants;
 
 sub spawn {
     my($class, %args) = @_;
@@ -38,7 +37,7 @@ sub spawn {
 	    goes_online      	=> \&goes_online,
 	    goes_offline     	=> \&goes_offline,
 	    change_status    	=> \&_handle_common,
-	    receive_message  	=> \&_handle_common,
+	    receive_message  	=> \&receive_message,
 	    new_friend_alert 	=> \&_handle_common,
 	    toggle_typing 	=> \&_handle_common,
 	    server_is_alive 	=> \&_handle_common,
@@ -187,27 +186,55 @@ sub receive_buddy_list {
 
 sub goes_online {
     my($kernel, $heap, $event) = @_[KERNEL, HEAP, ARG0];
-    $heap->{online}->{$event->id} = 1;
-    $kernel->yield(notify => $event->name, $event);
+    my $number = $event->number_of_online_buddies;
+    $number = 1 unless defined $number;
+    for my $num (0..$number-1) {
+	$heap->{online}->{$event->buddy_id($num)} = 1;
+	my $goes_online = POE::Component::YahooMessenger::Event->new(
+	    'goes_online', 0, {
+		buddy_id => $event->buddy_id($num),
+		status_code => $event->status_code($num),
+		status_message => $event->status_message($num),
+		busy_code => $event->busy_code($num),
+	    },
+	);
+	$kernel->yield(notify => $goes_online->name, $goes_online);
+    }
 }
 
 sub goes_offline {
     my($kernel, $heap, $event) = @_[KERNEL, HEAP, ARG0];
-    delete $heap->{online}->{$event->id};
+    delete $heap->{online}->{$event->buddy_id};
     $kernel->yield(notify => $event->name, $event);
+}
+
+sub receive_message {
+    my($kernel, $heap, $event) = @_[KERNEL, HEAP, ARG0];
+    my $code = $event->status_code;
+    unless (defined $code && $code == 99) {
+	$kernel->yield(notify => $event->name, $event);	
+    }
 }
 
 sub send_message {
     my($kernel, $heap, $args) = @_[KERNEL, HEAP, ARG0];
+    my $option = _is_buddy($heap, $args->{to})
+	? $Options->{to_buddies} : $Options->{to_non_buddies};
     $heap->{sock}->put(
 	POE::Component::YahooMessenger::Event->new(
-	    'send_message', 1515563606, {
+	    'send_message', $option, {
 		from => $heap->{id},
 		to   => $args->{to},
 		message => $args->{message},
 	    },
 	),
     );
+}
+
+sub _is_buddy {
+    my($heap, $buddy_id) = @_;
+    my %buddies = map $_ => 1, map @$_, values %{$heap->{buddies}};
+    return $buddies{$buddy_id};
 }
 
 sub change_my_status {
